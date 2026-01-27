@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Find out what you REALLY are: Cowboy, Pirate, Ninja?</title>
+    <script src="questions.js"></script>
+    <script src="types.js"></script>
+    <script src="utility.js"></script>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+
+    <h1>Find out what you REALLY are: Cowboy, Pirate, Ninja?</h1>
+    <p>Thanks for checking out my personality quiz! Please answer honestly.</p>
+    <hr>
+
+    <div id="quiz" class="container"></div>
+
+    <div><p class="secret">Nice, you found my secret message! Now look out for the SECRET personalities: Rocket Man, Motorcycle Man, Indian, Creep, Monk, Business Man.</p></div>
+
+    <script>
+      let currentQuestion = 0;
+      const scores = Object.fromEntries(Object.keys(TYPES).map(key => [key, 0]));
+
+      const quizDiv = document.getElementById('quiz');
+
+      showQuestion();
+
+      function showQuestion() {
+        quizDiv.innerHTML = '';
+
+        const q = QUESTIONS[currentQuestion];
+
+        const counter = document.createElement('p');
+        counter.textContent = `${currentQuestion+1} / ${QUESTIONS.length}`;
+        counter.style.textAlign = "right";
+        quizDiv.appendChild(counter);
+
+        const prompt = document.createElement('h2');
+        prompt.textContent = q.text;
+        quizDiv.appendChild(prompt);
+
+        q.answers.forEach(answer => {
+          const btn = document.createElement('button');
+          btn.textContent = answer.text;
+          btn.onclick = () => selectAnswer(answer);
+          quizDiv.appendChild(btn);
+        });
+      }
+
+      function selectAnswer(answer) {
+        if ("scores" in answer) {
+          for (const k in answer.scores) {
+            scores[k] += answer.scores[k];
+            console.log(k, scores[k])
+          }
+        }
+
+        if ("redirect" in answer) {
+          currentQuestion += answer.redirect;
+        } else {
+          currentQuestion++;
+        }
+
+        if (currentQuestion < QUESTIONS.length) {
+          showQuestion();
+        } else {
+          showResult();
+        }
+      }
+
+      function showResult() {
+        quizDiv.innerHTML = '';
+
+        console.log(JSON.stringify(scores));
+
+        const hour = new Date().getHours();
+        if (hour >= 0 && hour <= 5 && Math.random() < 0.1) {
+          glimpse();
+          return;
+        }
+
+        const t = getType();
+        if (t === null) {
+          const message = document.createElement('p');
+          message.innerHTML = "Oops, looks like you don't have a personality. Or you are a hacker, which is just as sad. 😢";
+          quizDiv.appendChild(message);
+
+          const picture = document.createElement('img');
+          picture.src = "resources/fail.jpg";
+          quizDiv.appendChild(picture);
+
+          const player = document.createElement('audio');
+          player.src = "resources/fail.mp3";
+          player.controls = true;
+          player.hidden = false;
+          quizDiv.appendChild(player);
+          player.play();
+          return;
+        }
+        const myType = TYPES[t];
+        
+        const message = document.createElement('p');
+        message.innerHTML = `Congrats for answering, you are: <i class="blink">${myType.name}</i>`;
+        quizDiv.appendChild(message);
+
+        if ("description" in myType) {
+          const description = document.createElement('p');
+          description.innerHTML = myType.description;
+          quizDiv.appendChild(description);
+        }
+
+        if ("picture" in myType) {
+          const picture = document.createElement('img');
+          picture.src = myType.picture;
+          quizDiv.appendChild(picture);
+        }
+
+        if ("song" in myType) {
+          const player = document.createElement('audio');
+          player.src = myType.song;
+          player.controls = true;
+          player.hidden = false;
+          if ("songStart" in myType) {
+            player.currentTime = myType.songStart;
+          }
+          quizDiv.appendChild(player);
+          player.play();
+        }
+
+        if (myType.pinkify) {
+          const styler = document.createElement('style');
+          styler.textContent = `
+            body {
+              background-color: #B04080;
+              background-image: radial-gradient(#F080A0 1px, transparent 1px);
+            }
+
+            .secret {
+              color: #B04080;
+            }
+          `;
+          document.head.appendChild(styler);
+        }
+      }
+
+      function getType() {
+        let bestType = null;
+        let bestScore = -Infinity;
+        let priority = 0;
+
+        for (const k in scores) {
+          if (!(k in TYPES)) {
+            continue;
+          }
+
+          // must be at least current priority level AND at least the type's minimum score
+          if ((priority === 0 || ("priority" in TYPES[k] && TYPES[k].priority >= priority)) &&
+              (!("minimumScore" in TYPES[k]) || scores[k] >= TYPES[k].minimumScore)) {
+            if (TYPES[k].priority > priority) {
+              priority = TYPES[k].priority;
+              bestScore = scores[k];
+              bestType = k;
+            } else if (scores[k] > bestScore) {
+              bestScore = scores[k];
+              bestType = k;
+            }
+          }
+        }
+
+        return bestType;
+      }
+    </script>
+
+  </body>
+</html>
